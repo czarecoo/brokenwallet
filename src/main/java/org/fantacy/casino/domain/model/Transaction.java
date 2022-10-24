@@ -13,9 +13,7 @@ import javax.persistence.UniqueConstraint;
 import static javax.persistence.FetchType.EAGER;
 
 @Entity
-@Table(
-        uniqueConstraints = @UniqueConstraint(name = "account_externalUid_unq", columnNames = {"account_id", "external_uid"})
-)
+@Table
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +27,18 @@ public class Transaction {
     private Double amount;
     private Double balanceBefore;
     private Double balanceAfter;
+
+    public Transaction() {
+    }
+
+    public Transaction(Account account, String direction, String externalUid, Double amount, Double balanceBefore, Double balanceAfter) {
+        this.account = account;
+        this.direction = direction;
+        this.externalUid = externalUid;
+        this.amount = amount;
+        this.balanceBefore = balanceBefore;
+        this.balanceAfter = balanceAfter;
+    }
 
     public Long getId() {
         return id;

@@ -9,7 +9,7 @@ import javax.persistence.Index;
 import javax.persistence.Table;
 
 @Entity
-@Table(indexes = @Index(name = "playerUid_idx", columnList = "player_uid", unique = false))
+@Table
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,6 +17,13 @@ public class Account {
 
     @Column(name = "player_uid")
     private String playerUid;
+
+    public Account() {
+    }
+
+    public Account(String playerUid) {
+        this.playerUid = playerUid;
+    }
 
     public Long getId() {
         return id;

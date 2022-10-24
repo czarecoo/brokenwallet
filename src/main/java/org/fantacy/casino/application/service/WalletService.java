@@ -1,12 +1,15 @@
 package org.fantacy.casino.application.service;
 
-import kotlin.reflect.jvm.internal.impl.descriptors.Visibilities.Public;
 import org.fantacy.casino.domain.api.AccountBalanceDTO;
+import org.fantacy.casino.domain.api.AccountBalanceDocument;
 import org.fantacy.casino.domain.api.AccountBalanceQuery;
 import org.fantacy.casino.domain.api.CreateAccountCommand;
 import org.fantacy.casino.domain.api.CreateAccountDocument;
 import org.fantacy.casino.domain.api.CreditAccountCommand;
+import org.fantacy.casino.domain.api.CreditAccountDocument;
 import org.fantacy.casino.domain.api.DebitAccountCommand;
+import org.fantacy.casino.domain.api.DebitAccountDocument;
+import org.fantacy.casino.domain.api.ListTransactionsDocument;
 import org.fantacy.casino.domain.api.ListTransactionsQuery;
 import org.fantacy.casino.domain.api.TransactionDTO;
 import org.fantacy.casino.domain.model.Account;
@@ -31,100 +34,98 @@ public class WalletService{
     }
 
     public CreateAccountDocument createAccount(CreateAccountCommand command) {
-        Account account = new Account();
-        account.setPlayerUid(command.getPlayerUid());
+        Account account = new Account(command.playerUid());
 
         account = accountRepository.saveAndFlush(account);
 
-        CreateAccountDocument doc = new CreateAccountDocument();
-        doc.setAccount(account.getId());
-
-        return doc;
+        return new CreateAccountDocument(account.getId());
     }
 
-    public List<AccountBalanceDTO> accountBalance(AccountBalanceQuery query) {
-        List<Account> accounts = accountRepository.findByPlayerUid(query.getPlayerUid());
+    public AccountBalanceDocument accountBalance(AccountBalanceQuery query) {
+        List<Account> accounts = accountRepository.findByPlayerUid(query.playerUid());
 
-        return accounts.stream().map(account -> {
+        return new AccountBalanceDocument(accounts.stream().map(account -> {
             return transactionRepository.findFirstByAccountOrderByIdDesc(account);
         }).filter(Objects::nonNull)
         .map(transaction -> {
-            AccountBalanceDTO dto = new AccountBalanceDTO();
-            dto.setAccount(transaction.getAccount().getId());
-            dto.setBalance(transaction.getBalanceAfter());
-            return dto;
-        }).collect(Collectors.toList());
+            return new AccountBalanceDTO(
+                    transaction.getAccount().getId(),
+                    transaction.getBalanceAfter());
+        }).collect(Collectors.toList()));
     }
 
     // add money
-    public AccountBalanceDTO creditAccount(CreditAccountCommand command) {
-        Account account = accountRepository.getById(command.getAccount());
+    public CreditAccountDocument creditAccount(CreditAccountCommand command) {
+        Account account = accountRepository.getById(command.account());
         Transaction lastTransaction = transactionRepository.findFirstByAccountOrderByIdDesc(account);
 
-        Transaction transaction = new Transaction();
-        transaction.setAccount(account);
-        transaction.setDirection("credit");
-        transaction.setExternalUid(command.getExternalUid());
-        transaction.setAmount(command.getAmount());
+        double balanceAfter = 0D;
+        double balanceBefore = 0D;
 
         if (lastTransaction != null) {
-            transaction.setBalanceBefore(lastTransaction.getBalanceAfter());
-            transaction.setBalanceAfter(lastTransaction.getBalanceAfter() + command.getAmount());
+            balanceBefore = lastTransaction.getBalanceAfter();
+            balanceAfter = lastTransaction.getBalanceAfter() + command.amount();
         } else {
-            transaction.setBalanceBefore(0D);
-            transaction.setBalanceAfter(command.getAmount());
+            balanceAfter = command.amount();
         }
+
+        Transaction transaction = new Transaction(
+                account,
+                "credit",
+                command.externalUid(),
+                command.amount(),
+                balanceBefore,
+                balanceAfter);
 
         transactionRepository.saveAndFlush(transaction);
 
-        AccountBalanceDTO dto = new AccountBalanceDTO();
-        dto.setAccount(account.getId());
-        dto.setBalance(transaction.getBalanceAfter());
-
-        return dto;
+        return new CreditAccountDocument(new AccountBalanceDTO(
+            account.getId(),
+            transaction.getBalanceAfter()));
     }
 
     // remove money
-    public AccountBalanceDTO debitAccount(DebitAccountCommand command) {
-        Account account = accountRepository.getById(command.getAccount());
+    public DebitAccountDocument debitAccount(DebitAccountCommand command) {
+        Account account = accountRepository.getById(command.account());
         Transaction lastTransaction = transactionRepository.findFirstByAccountOrderByIdDesc(account);
 
-        Transaction transaction = new Transaction();
-        transaction.setAccount(account);
-        transaction.setDirection("debit");
-        transaction.setExternalUid(command.getExternalUid());
-        transaction.setAmount(command.getAmount());
+        double balanceAfter = 0D;
+        double balanceBefore = 0D;
 
         if (lastTransaction != null) {
-            transaction.setBalanceBefore(lastTransaction.getBalanceAfter());
-            transaction.setBalanceAfter(lastTransaction.getBalanceAfter() - command.getAmount());
+            balanceBefore = lastTransaction.getBalanceAfter();
+            balanceAfter = lastTransaction.getBalanceAfter() - command.amount();
         } else {
-            transaction.setBalanceBefore(0D);
-            transaction.setBalanceAfter(command.getAmount());
+            balanceAfter = command.amount();
         }
+
+        Transaction transaction = new Transaction(
+                account,
+                "debit",
+                command.externalUid(),
+                command.amount(),
+                balanceBefore,
+                balanceAfter
+        );
 
         transactionRepository.saveAndFlush(transaction);
 
-        AccountBalanceDTO dto = new AccountBalanceDTO();
-        dto.setAccount(account.getId());
-        dto.setBalance(transaction.getBalanceAfter());
-
-        return dto;
+        return new DebitAccountDocument(new AccountBalanceDTO(
+            account.getId(),
+            transaction.getBalanceAfter()));
     }
 
-    public List<TransactionDTO> listTransactions(ListTransactionsQuery query) {
-        List<Account> accounts = accountRepository.findByPlayerUid(query.getPlayerUid());
+    public ListTransactionsDocument listTransactions(ListTransactionsQuery query) {
+        List<Account> accounts = accountRepository.findByPlayerUid(query.playerUid());
 
-        return accounts.stream().flatMap(account -> {
+        return new ListTransactionsDocument(accounts.stream().flatMap(account -> {
             return transactionRepository.findByAccount(account).stream();
         }).map(transaction -> {
-            TransactionDTO dto = new TransactionDTO();
-            dto.setAccount(transaction.getAccount().getId());
-            dto.setDirection(transaction.getDirection());
-            dto.setExternalUid(transaction.getExternalUid());
-            dto.setAmount(transaction.getAmount());
-
-            return dto;
-        }).collect(Collectors.toList());
+            return new TransactionDTO(
+                transaction.getAccount().getId(),
+                transaction.getDirection(),
+                transaction.getExternalUid(),
+                transaction.getAmount());
+        }).collect(Collectors.toList()));
     }
 }
