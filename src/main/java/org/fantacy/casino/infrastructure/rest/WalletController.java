@@ -1,40 +1,26 @@
 package org.fantacy.casino.infrastructure.rest;
 
+import lombok.RequiredArgsConstructor;
 import org.fantacy.casino.application.service.WalletService;
 import org.fantacy.casino.domain.ValidationException;
-import org.fantacy.casino.domain.api.AccountBalanceDTO;
-import org.fantacy.casino.domain.api.AccountBalanceDocument;
-import org.fantacy.casino.domain.api.AccountBalanceQuery;
-import org.fantacy.casino.domain.api.CreateAccountCommand;
-import org.fantacy.casino.domain.api.CreateAccountDocument;
-import org.fantacy.casino.domain.api.CreditAccountCommand;
-import org.fantacy.casino.domain.api.CreditAccountDocument;
-import org.fantacy.casino.domain.api.DebitAccountCommand;
-import org.fantacy.casino.domain.api.DebitAccountDocument;
-import org.fantacy.casino.domain.api.ListTransactionsDocument;
-import org.fantacy.casino.domain.api.ListTransactionsQuery;
-import org.fantacy.casino.domain.api.TransactionDTO;
+import org.fantacy.casino.domain.api.*;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
+@RequiredArgsConstructor
 @RequestMapping(path = "/api/wallet", consumes = "application/json", produces = "application/json")
 public class WalletController {
 
-	private WalletService walletService;
-
-	public WalletController(WalletService walletService) {
-		this.walletService = walletService;
-	}
+	private static final String PLAYER_UID_MUST_NOT_BE_NULL_OR_EMPTY = "playerUid must not be null or empty";
+	private final WalletService walletService;
 
 	@PostMapping(path = "/create")
 	public CreateAccountDocument createAccount(@RequestBody CreateAccountCommand command) {
 		if (command.playerUid().isEmpty()) {
-			throw new ValidationException("playerUid must not be null or empty");
+			throw new ValidationException(PLAYER_UID_MUST_NOT_BE_NULL_OR_EMPTY);
 		}
 
 		return walletService.createAccount(command);

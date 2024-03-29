@@ -1,17 +1,7 @@
 package org.fantacy.casino.application.service;
 
-import org.fantacy.casino.domain.api.AccountBalanceDTO;
-import org.fantacy.casino.domain.api.AccountBalanceDocument;
-import org.fantacy.casino.domain.api.AccountBalanceQuery;
-import org.fantacy.casino.domain.api.CreateAccountCommand;
-import org.fantacy.casino.domain.api.CreateAccountDocument;
-import org.fantacy.casino.domain.api.CreditAccountCommand;
-import org.fantacy.casino.domain.api.CreditAccountDocument;
-import org.fantacy.casino.domain.api.DebitAccountCommand;
-import org.fantacy.casino.domain.api.DebitAccountDocument;
-import org.fantacy.casino.domain.api.ListTransactionsDocument;
-import org.fantacy.casino.domain.api.ListTransactionsQuery;
-import org.fantacy.casino.domain.api.TransactionDTO;
+import lombok.RequiredArgsConstructor;
+import org.fantacy.casino.domain.api.*;
 import org.fantacy.casino.domain.model.Account;
 import org.fantacy.casino.domain.model.Transaction;
 import org.fantacy.casino.domain.repository.AccountRepository;
@@ -23,15 +13,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class WalletService{
 
-    private AccountRepository accountRepository;
-    private TransactionRepository transactionRepository;
-
-    public WalletService(AccountRepository accountRepository, TransactionRepository transactionRepository) {
-        this.accountRepository = accountRepository;
-        this.transactionRepository = transactionRepository;
-    }
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
 
     public CreateAccountDocument createAccount(CreateAccountCommand command) {
         Account account = new Account(command.playerUid());
@@ -54,7 +40,6 @@ public class WalletService{
         }).collect(Collectors.toList()));
     }
 
-    // add money
     public CreditAccountDocument creditAccount(CreditAccountCommand command) {
         Account account = accountRepository.getById(command.account());
         Transaction lastTransaction = transactionRepository.findFirstByAccountOrderByIdDesc(account);
@@ -84,7 +69,6 @@ public class WalletService{
             transaction.getBalanceAfter()));
     }
 
-    // remove money
     public DebitAccountDocument debitAccount(DebitAccountCommand command) {
         Account account = accountRepository.getById(command.account());
         Transaction lastTransaction = transactionRepository.findFirstByAccountOrderByIdDesc(account);
